@@ -1,0 +1,18 @@
+# Values for the grafana-community/grafana Helm chart.
+
+adminUser: admin
+adminPassword: admin
+
+service:
+  type: NodePort
+  nodePort: 30300
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-server.monitoring.svc
+        isDefault: true

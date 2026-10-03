@@ -1,0 +1,39 @@
+# Values for the argo/argo-workflows Helm chart.
+
+# Run workflows in the same namespace Argo is installed in.
+controller:
+  workflowNamespaces:
+    - argo
+
+workflow:
+  serviceAccount:
+    create: true
+    name: argo-workflow
+  rbac:
+    create: true
+    artifactGC: true
+
+server:
+  # No login for a local dev cluster. Don't do this anywhere shared.
+  authModes:
+    - server
+  secure: false
+  serviceType: NodePort
+  serviceNodePort: 30746
+
+# Default artifact repository -> SeaweedFS S3 gateway.
+useStaticCredentials: true
+artifactRepository:
+  archiveLogs: true
+  s3:
+    endpoint: seaweedfs.seaweedfs.svc:8333
+    bucket: argo-artifacts
+    region: us-east-1
+    insecure: true
+    addressingStyle: path
+    accessKeySecret:
+      name: seaweedfs-s3-credentials
+      key: accessKey
+    secretKeySecret:
+      name: seaweedfs-s3-credentials
+      key: secretKey

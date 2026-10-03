@@ -1,0 +1,14 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: prometheus
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Grafana    -> http://localhost:3001
+      - containerPort: 30300
+        hostPort: 3001
+        protocol: TCP
+      # Prometheus -> http://localhost:9091
+      - containerPort: 30090
+        hostPort: 9091
+        protocol: TCP

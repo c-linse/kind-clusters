@@ -1,0 +1,39 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: prometheus-operator
+nodes:
+  - role: control-plane
+    # Control-plane components bind their metrics endpoints to 127.0.0.1 by
+    # default, which Prometheus can't scrape. Expose them on all interfaces.
+    kubeadmConfigPatches:
+      - |
+        kind: ClusterConfiguration
+        controllerManager:
+          extraArgs:
+            - name: bind-address
+              value: 0.0.0.0
+        scheduler:
+          extraArgs:
+            - name: bind-address
+              value: 0.0.0.0
+        etcd:
+          local:
+            extraArgs:
+              - name: listen-metrics-urls
+                value: http://0.0.0.0:2381
+      - |
+        kind: KubeProxyConfiguration
+        metricsBindAddress: 0.0.0.0:10249
+    extraPortMappings:
+      # Grafana      -> http://localhost:3000
+      - containerPort: 30300
+        hostPort: 3000
+        protocol: TCP
+      # Prometheus   -> http://localhost:9090
+      - containerPort: 30090
+        hostPort: 9090
+        protocol: TCP
+      # Alertmanager -> http://localhost:9093
+      - containerPort: 30903
+        hostPort: 9093
+        protocol: TCP

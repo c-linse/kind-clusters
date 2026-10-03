@@ -1,0 +1,20 @@
+# Values for the prometheus-community/prometheus Helm chart.
+# Just the Prometheus server plus the exporters it needs to have something to scrape.
+
+server:
+  retention: 2d
+  service:
+    type: NodePort
+    nodePort: 30090
+
+alertmanager:
+  enabled: false
+
+prometheus-pushgateway:
+  enabled: false
+
+kube-state-metrics:
+  enabled: true
+
+prometheus-node-exporter:
+  enabled: true

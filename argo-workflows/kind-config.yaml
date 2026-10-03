@@ -1,0 +1,14 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: argo-workflows
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Argo Workflows UI / API  -> http://localhost:2746
+      - containerPort: 30746
+        hostPort: 2746
+        protocol: TCP
+      # SeaweedFS S3 endpoint     -> http://localhost:8333
+      - containerPort: 30333
+        hostPort: 8333
+        protocol: TCP

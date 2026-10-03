@@ -1,0 +1,135 @@
+# Single-node SeaweedFS (master + volume + filer + S3 gateway in one pod).
+# Good enough for a local dev cluster, not for anything you care about.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: seaweedfs
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: seaweedfs-s3-config
+  namespace: seaweedfs
+stringData:
+  s3.json: |
+    {
+      "identities": [
+        {
+          "name": "argo",
+          "credentials": [
+            { "accessKey": "argo", "secretKey": "argo-secret-key" }
+          ],
+          "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+        }
+      ]
+    }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: seaweedfs-data
+  namespace: seaweedfs
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs
+  namespace: seaweedfs
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: seaweedfs
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+    spec:
+      containers:
+        - name: seaweedfs
+          image: chrislusf/seaweedfs:4.48
+          args:
+            - server
+            - -dir=/data
+            - -ip.bind=0.0.0.0
+            - -volume.max=0
+            - -s3
+            - -s3.port=8333
+            - -s3.config=/etc/seaweedfs/s3.json
+          ports:
+            - name: s3
+              containerPort: 8333
+            - name: filer
+              containerPort: 8888
+            - name: master
+              containerPort: 9333
+          readinessProbe:
+            tcpSocket:
+              port: s3
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: s3-config
+              mountPath: /etc/seaweedfs
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: seaweedfs-data
+        - name: s3-config
+          secret:
+            secretName: seaweedfs-s3-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs
+  namespace: seaweedfs
+spec:
+  type: NodePort
+  selector:
+    app: seaweedfs
+  ports:
+    - name: s3
+      port: 8333
+      targetPort: s3
+      nodePort: 30333
+    - name: filer
+      port: 8888
+      targetPort: filer
+---
+# Creates the bucket Argo uses as its default artifact repository.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-argo-bucket
+  namespace: seaweedfs
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: aws-cli
+          image: amazon/aws-cli:latest
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              value: argo
+            - name: AWS_SECRET_ACCESS_KEY
+              value: argo-secret-key
+            - name: AWS_DEFAULT_REGION
+              value: us-east-1
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              aws --endpoint-url http://seaweedfs.seaweedfs.svc:8333 s3api head-bucket --bucket argo-artifacts 2>/dev/null \
+                || aws --endpoint-url http://seaweedfs.seaweedfs.svc:8333 s3 mb s3://argo-artifacts

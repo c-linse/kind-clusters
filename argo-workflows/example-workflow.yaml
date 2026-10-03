@@ -1,0 +1,41 @@
+# Writes a file, stores it as an artifact in SeaweedFS, then reads it back.
+#   kubectl create -f example-workflow.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: artifact-passing-
+  namespace: argo
+spec:
+  serviceAccountName: argo-workflow
+  entrypoint: main
+  templates:
+    - name: main
+      steps:
+        - - name: generate
+            template: generate
+        - - name: consume
+            template: consume
+            arguments:
+              artifacts:
+                - name: message
+                  from: "{{steps.generate.outputs.artifacts.message}}"
+
+    - name: generate
+      container:
+        image: busybox:1.37
+        command: [sh, -c]
+        args: ["echo 'hello from seaweedfs' > /tmp/message.txt"]
+      outputs:
+        artifacts:
+          - name: message
+            path: /tmp/message.txt
+
+    - name: consume
+      inputs:
+        artifacts:
+          - name: message
+            path: /tmp/message.txt
+      container:
+        image: busybox:1.37
+        command: [sh, -c]
+        args: ["cat /tmp/message.txt"]
