@@ -16,7 +16,7 @@ printf "fs.inotify.max_user_instances=512\nfs.inotify.max_user_watches=524288\n"
 
 ```sh
 ./up.sh      # create cluster, deploy SeaweedFS + bucket, install Argo
-kubectl --context kind-argo-workflows create -f example-workflow.yaml
+kubectl --context kind-argo-workflows create -f workflows/example-workflow.yaml
 ./down.sh    # delete cluster
 ```
 
@@ -30,11 +30,14 @@ kubectl --context kind-argo-workflows create -f example-workflow.yaml
 
 ## Files
 
+- `up.sh` / `down.sh` – create / delete the cluster
 - `kind-config.yaml` – cluster + host port mappings
-- `seaweedfs.yaml` – all-in-one `weed server -s3`, PVC, NodePort service, bucket-creation Job
-- `postgres.yaml` – PostgreSQL 17, credentials Secret, PVC, NodePort service
-- `kafka.yaml` – single-node Kafka in KRaft combined mode (broker + controller), PVC, NodePort service
-- `kafka-ui.yaml` – Kafbat UI for browsing topics and messages, NodePort service
-- `argo-s3-secret.yaml` – S3 creds in the `argo` namespace
-- `argo-values.yaml` – Helm values (default artifact repo → SeaweedFS, log archiving on)
-- `example-workflow.yaml` – passes an artifact between two steps via S3
+- `manifests/`
+  - `seaweedfs.yaml` – all-in-one `weed server -s3`, PVC, NodePort service, bucket-creation Job
+  - `postgres.yaml` – PostgreSQL 17, credentials Secret, PVC, NodePort service
+  - `kafka.yaml` – single-node Kafka in KRaft combined mode (broker + controller), PVC, NodePort service
+  - `kafka-ui.yaml` – Kafbat UI for browsing topics and messages, NodePort service
+  - `argo-s3-secret.yaml` – S3 creds in the `argo` namespace
+- `helm/argo-values.yaml` – Argo Workflows Helm values (default artifact repo → SeaweedFS, log archiving on)
+- `workflows/example-workflow.yaml` – passes an artifact between two steps via S3
+- `bin/seed-kafka.sh` / `bin/seed-postgres.sh` – create a `demo` topic / table and insert a few sample records
