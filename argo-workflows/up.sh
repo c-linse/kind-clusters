@@ -27,9 +27,14 @@ kubectl --context "${CONTEXT}" -n postgres rollout status deploy/postgres --time
 kubectl --context "${CONTEXT}" -n kafka rollout status deploy/kafka --timeout=300s
 kubectl --context "${CONTEXT}" -n kafka rollout status deploy/kafka-ui --timeout=300s
 
+echo "==> Deploying nginx"
+kubectl --context "${CONTEXT}" apply -f manifests/nginx.yaml
+kubectl --context "${CONTEXT}" -n nginx rollout status deploy/nginx --timeout=120s
+
 echo "==> Installing Argo Workflows"
 kubectl --context "${CONTEXT}" create namespace argo --dry-run=client -o yaml | kubectl --context "${CONTEXT}" apply -f -
 kubectl --context "${CONTEXT}" apply -f manifests/argo-s3-secret.yaml
+kubectl --context "${CONTEXT}" apply -f manifests/argo-postgres-secret.yaml
 helm repo add argo https://argoproj.github.io/argo-helm >/dev/null 2>&1 || true
 helm repo update argo >/dev/null
 helm upgrade --install argo-workflows argo/argo-workflows \
@@ -47,6 +52,7 @@ Done.
   PostgreSQL:   localhost:5432  (in-cluster: postgres.postgres.svc:5432; app / app-secret, db "app")
   Kafka:        localhost:9094  (in-cluster: kafka.kafka.svc:9092)
   Kafka UI:     http://localhost:8080
+  nginx:        http://localhost:8081  (in-cluster: nginx.nginx.svc:80)
 
 Try it:
   kubectl --context ${CONTEXT} create -f workflows/example-workflow.yaml

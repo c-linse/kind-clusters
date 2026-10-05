@@ -24,3 +24,7 @@ nodes:
       - containerPort: 30080
         hostPort: 8080
         protocol: TCP
+      # nginx                     -> http://localhost:8081
+      - containerPort: 30081
+        hostPort: 8081
+        protocol: TCP

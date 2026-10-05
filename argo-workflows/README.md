@@ -27,6 +27,7 @@ kubectl --context kind-argo-workflows create -f workflows/example-workflow.yaml
 | PostgreSQL | `localhost:5432` (in-cluster `postgres.postgres.svc:5432`) | `app` / `app-secret` (superuser), db `app` |
 | Kafka (KRaft) | `localhost:9094` (in-cluster `kafka.kafka.svc:9092`) | none (PLAINTEXT) |
 | Kafka UI | http://localhost:8080 | none |
+| nginx | http://localhost:8081 (in-cluster `nginx.nginx.svc:80`) | none |
 
 ## Files
 
@@ -37,7 +38,11 @@ kubectl --context kind-argo-workflows create -f workflows/example-workflow.yaml
   - `postgres.yaml` – PostgreSQL 17, credentials Secret, PVC, NodePort service
   - `kafka.yaml` – single-node Kafka in KRaft combined mode (broker + controller), PVC, NodePort service
   - `kafka-ui.yaml` – Kafbat UI for browsing topics and messages, NodePort service
+  - `nginx.yaml` – plain nginx serving its default page, NodePort service
   - `argo-s3-secret.yaml` – S3 creds in the `argo` namespace
+  - `argo-postgres-secret.yaml` – PostgreSQL connection (libpq env vars) in the `argo` namespace
 - `helm/argo-values.yaml` – Argo Workflows Helm values (default artifact repo → SeaweedFS, log archiving on)
 - `workflows/example-workflow.yaml` – passes an artifact between two steps via S3
+- `workflows/postgres-read.yaml` – queries the `demo` table and prints the rows (run `bin/seed-postgres.sh` first)
+- `workflows/kafka-consume.yaml` – prints all messages of a topic (param `topic`, default `demo`; run `bin/seed-kafka.sh` first)
 - `bin/seed-kafka.sh` / `bin/seed-postgres.sh` – create a `demo` topic / table and insert a few sample records
