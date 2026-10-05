@@ -1,0 +1,3 @@
+tofu/.terraform/
+tofu/terraform.tfstate*
+tofu/*.tfvars

@@ -1,0 +1,19 @@
+# Reads rows from the demo table (see bin/seed-postgres.sh) and prints them.
+#   kubectl create -f workflows/postgres-read.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: postgres-read-
+  namespace: argo
+spec:
+  serviceAccountName: argo-workflow
+  entrypoint: read
+  templates:
+    - name: read
+      container:
+        image: postgres:17
+        command: [psql, -v, ON_ERROR_STOP=1, -c]
+        args: ["SELECT id, msg, created_at FROM demo ORDER BY id"]
+        envFrom:
+          - secretRef:
+              name: postgres-connection

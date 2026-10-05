@@ -1,0 +1,30 @@
+# Consumes all messages from a topic (see bin/seed-kafka.sh) and prints them.
+# Stops after 10s without new messages.
+#   kubectl create -f workflows/kafka-consume.yaml
+#   argo submit workflows/kafka-consume.yaml -p topic=other
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: kafka-consume-
+  namespace: argo
+spec:
+  serviceAccountName: argo-workflow
+  entrypoint: consume
+  arguments:
+    parameters:
+      - name: topic
+        value: demo
+  templates:
+    - name: consume
+      inputs:
+        parameters:
+          - name: topic
+      container:
+        image: apache/kafka:4.1.0
+        command: [/opt/kafka/bin/kafka-console-consumer.sh]
+        args:
+          - --bootstrap-server=kafka.kafka.svc.cluster.local:9092
+          - --topic={{inputs.parameters.topic}}
+          - --from-beginning
+          - --timeout-ms=10000
+          - --property=print.timestamp=true

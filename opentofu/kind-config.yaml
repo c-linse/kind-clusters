@@ -1,0 +1,10 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: opentofu
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Demo app NodePort (managed by tofu/) -> http://localhost:8080
+      - containerPort: 30080
+        hostPort: 8080
+        protocol: TCP
