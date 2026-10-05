@@ -1,0 +1,116 @@
+# Single-node Kafka in KRaft combined mode (broker + controller, no ZooKeeper).
+# Local dev only.
+#
+# Listeners:
+#   INTERNAL  :9092  in-cluster clients -> kafka.kafka.svc:9092
+#   EXTERNAL  :9094  host clients       -> localhost:9094 (NodePort 30094 + kind port mapping)
+#   CONTROLLER:9093  KRaft quorum, pod-local
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kafka
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka-data
+  namespace: kafka
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  namespace: kafka
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      # Otherwise k8s injects KAFKA_PORT etc. from the "kafka" Service, and the
+      # image turns every KAFKA_* env var into a broker config property.
+      enableServiceLinks: false
+      containers:
+        - name: kafka
+          image: apache/kafka:4.1.0
+          env:
+            - name: CLUSTER_ID
+              value: 5L6g3nShT-eMCtK--X86sw
+            - name: KAFKA_NODE_ID
+              value: "1"
+            - name: KAFKA_PROCESS_ROLES
+              value: broker,controller
+            - name: KAFKA_LISTENERS
+              value: INTERNAL://0.0.0.0:9092,CONTROLLER://localhost:9093,EXTERNAL://0.0.0.0:9094
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: INTERNAL://kafka.kafka.svc.cluster.local:9092,EXTERNAL://localhost:9094
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+            - name: KAFKA_INTER_BROKER_LISTENER_NAME
+              value: INTERNAL
+            - name: KAFKA_CONTROLLER_LISTENER_NAMES
+              value: CONTROLLER
+            - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+              value: 1@localhost:9093
+            - name: KAFKA_LOG_DIRS
+              value: /var/lib/kafka/data
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+              value: "1"
+            - name: KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR
+              value: "1"
+            - name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS
+              value: "0"
+            - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+              value: "true"
+          ports:
+            - name: internal
+              containerPort: 9092
+            - name: external
+              containerPort: 9094
+          readinessProbe:
+            tcpSocket:
+              port: internal
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/kafka/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: kafka-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: kafka
+spec:
+  type: NodePort
+  selector:
+    app: kafka
+  ports:
+    - name: internal
+      port: 9092
+      targetPort: internal
+    - name: external
+      port: 9094
+      targetPort: external
+      nodePort: 30094

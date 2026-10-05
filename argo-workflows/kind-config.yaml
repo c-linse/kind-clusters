@@ -12,3 +12,15 @@ nodes:
       - containerPort: 30333
         hostPort: 8333
         protocol: TCP
+      # PostgreSQL                -> localhost:5432
+      - containerPort: 30432
+        hostPort: 5432
+        protocol: TCP
+      # Kafka (EXTERNAL listener) -> localhost:9094
+      - containerPort: 30094
+        hostPort: 9094
+        protocol: TCP
+      # Kafka UI                  -> http://localhost:8080
+      - containerPort: 30080
+        hostPort: 8080
+        protocol: TCP

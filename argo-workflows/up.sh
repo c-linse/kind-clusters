@@ -16,6 +16,17 @@ kubectl --context "${CONTEXT}" apply -f seaweedfs.yaml
 kubectl --context "${CONTEXT}" -n seaweedfs rollout status deploy/seaweedfs --timeout=180s
 kubectl --context "${CONTEXT}" -n seaweedfs wait --for=condition=complete job/create-argo-bucket --timeout=180s
 
+echo "==> Deploying PostgreSQL"
+kubectl --context "${CONTEXT}" apply -f postgres.yaml
+
+echo "==> Deploying Kafka (KRaft)"
+kubectl --context "${CONTEXT}" apply -f kafka.yaml
+kubectl --context "${CONTEXT}" apply -f kafka-ui.yaml
+
+kubectl --context "${CONTEXT}" -n postgres rollout status deploy/postgres --timeout=300s
+kubectl --context "${CONTEXT}" -n kafka rollout status deploy/kafka --timeout=300s
+kubectl --context "${CONTEXT}" -n kafka rollout status deploy/kafka-ui --timeout=300s
+
 echo "==> Installing Argo Workflows"
 kubectl --context "${CONTEXT}" create namespace argo --dry-run=client -o yaml | kubectl --context "${CONTEXT}" apply -f -
 kubectl --context "${CONTEXT}" apply -f argo-s3-secret.yaml
@@ -33,6 +44,9 @@ cat <<EOF
 Done.
   Argo UI:     http://localhost:2746
   SeaweedFS S3: http://localhost:8333  (access key: argo / secret: argo-secret-key)
+  PostgreSQL:   localhost:5432  (in-cluster: postgres.postgres.svc:5432; app / app-secret, db "app")
+  Kafka:        localhost:9094  (in-cluster: kafka.kafka.svc:9092)
+  Kafka UI:     http://localhost:8080
 
 Try it:
   kubectl --context ${CONTEXT} create -f example-workflow.yaml
