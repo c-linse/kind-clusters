@@ -32,6 +32,12 @@ helm upgrade --install grafana grafana-community/grafana \
   --values grafana-values.yaml \
   --wait --timeout 5m
 
+echo "==> Deploying demo apps (metrics exposed, not scraped)"
+kubectl --context "${CONTEXT}" apply -f manifests/demo-apps.yaml
+for d in podinfo example-app nginx redis loadgen; do
+  kubectl --context "${CONTEXT}" -n demo rollout status "deploy/${d}" --timeout=180s
+done
+
 cat <<EOF
 
 Done.
