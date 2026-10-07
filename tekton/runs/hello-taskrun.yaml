@@ -1,0 +1,10 @@
+apiVersion: tekton.dev/v1
+kind: TaskRun
+metadata:
+  generateName: hello-run-
+spec:
+  taskRef:
+    name: hello
+  params:
+    - name: name
+      value: kind

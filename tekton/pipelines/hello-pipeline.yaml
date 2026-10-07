@@ -1,0 +1,38 @@
+# hello -> write-file -> read-file
+# The greeting result of "hello" is passed to "write-file", which stores it on
+# the shared workspace; "read-file" then prints it.
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: hello-pipeline
+spec:
+  params:
+    - name: name
+      type: string
+      default: Tekton
+  workspaces:
+    - name: shared
+  tasks:
+    - name: hello
+      taskRef:
+        name: hello
+      params:
+        - name: name
+          value: $(params.name)
+    - name: write
+      taskRef:
+        name: write-file
+      params:
+        - name: message
+          value: $(tasks.hello.results.greeting)
+      workspaces:
+        - name: output
+          workspace: shared
+    - name: read
+      runAfter:
+        - write
+      taskRef:
+        name: read-file
+      workspaces:
+        - name: input
+          workspace: shared

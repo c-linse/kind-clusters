@@ -91,3 +91,17 @@ resource "kubernetes_service_v1" "this" {
     }
   }
 }
+
+resource "kubernetes_config_map_v1" "myConfigMap" {
+  metadata {
+    name      = "${var.app_name}-cm"
+    namespace = kubernetes_namespace_v1.this.metadata[0].name
+    labels    = local.labels
+  }
+
+
+    data = {
+        api_host             = "myhost:443"
+    }
+
+}

@@ -1,0 +1,18 @@
+# Writes a message into a file on the shared workspace.
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: write-file
+spec:
+  params:
+    - name: message
+      type: string
+  workspaces:
+    - name: output
+  steps:
+    - name: write
+      image: busybox:1.37
+      script: |
+        #!/bin/sh
+        echo "$(params.message)" > $(workspaces.output.path)/message.txt
+        echo "wrote $(workspaces.output.path)/message.txt"

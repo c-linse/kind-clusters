@@ -1,0 +1,19 @@
+# Prints a greeting and exposes it as a result.
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: hello
+spec:
+  params:
+    - name: name
+      type: string
+      default: World
+  results:
+    - name: greeting
+      description: The generated greeting
+  steps:
+    - name: say-hello
+      image: busybox:1.37
+      script: |
+        #!/bin/sh
+        echo "Hello, $(params.name)!" | tee $(results.greeting.path)

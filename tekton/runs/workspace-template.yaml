@@ -1,0 +1,7 @@
+# PVC template for the "shared" workspace (used by `tkn pipeline start`).
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
