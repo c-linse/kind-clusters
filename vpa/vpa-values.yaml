@@ -1,0 +1,24 @@
+# Values for the autoscaler/vertical-pod-autoscaler Helm chart.
+# Single replicas are plenty on a one-node cluster.
+
+admissionController:
+  replicas: 1
+  podDisruptionBudget:
+    enabled: false
+
+recommender:
+  replicas: 1
+  podDisruptionBudget:
+    enabled: false
+  extraArgs:
+    # Default is 1m; recompute recommendations faster for the demo.
+    - --recommender-interval=30s
+
+updater:
+  replicas: 1
+  podDisruptionBudget:
+    enabled: false
+  extraArgs:
+    - --in-place-skip-disruption-budget=true
+    # Default is 1m.
+    - --updater-interval=30s

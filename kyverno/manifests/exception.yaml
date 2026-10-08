@@ -1,0 +1,13 @@
+# Exempts the `legacy` app's pods from disallow-latest-tag.
+apiVersion: policies.kyverno.io/v1
+kind: PolicyException
+metadata:
+  name: legacy-latest-tag
+  namespace: demo
+spec:
+  policyRefs:
+    - name: disallow-latest-tag
+      kind: ValidatingPolicy
+  matchConditions:
+    - name: legacy-app
+      expression: "has(object.metadata.labels) && object.metadata.labels[?'app'].orValue('') == 'legacy'"

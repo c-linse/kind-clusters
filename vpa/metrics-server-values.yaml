@@ -1,0 +1,5 @@
+# Values for the metrics-server/metrics-server Helm chart.
+
+args:
+  # kind kubelets use self-signed serving certs.
+  - --kubelet-insecure-tls

@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+---
+# Under-provisioned CPU burner (~200m used vs 50m requested).
+# VPA mode Recreate: the updater evicts pods and the admission controller
+# recreates them with the recommended requests.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hamster
+  namespace: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hamster
+  template:
+    metadata:
+      labels:
+        app: hamster
+    spec:
+      containers:
+        - name: hamster
+          image: busybox:1.37
+          command: ["sh", "-c", "while true; do timeout 0.2s yes >/dev/null; sleep 0.8s; done"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: hamster
+  namespace: demo
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hamster
+  updatePolicy:
+    updateMode: Recreate
+  resourcePolicy:
+    containerPolicies:
+      - containerName: "*"
+        minAllowed:
+          cpu: 25m
+          memory: 16Mi
+        maxAllowed:
+          cpu: 500m
+          memory: 256Mi
+        controlledResources: ["cpu", "memory"]
+---
+# Same burner, but VPA mode InPlaceOrRecreate: pods are resized in place
+# (no restart, see restartCount) and only evicted if that fails.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inplace
+  namespace: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: inplace
+  template:
+    metadata:
+      labels:
+        app: inplace
+    spec:
+      containers:
+        - name: inplace
+          image: busybox:1.37
+          command: ["sh", "-c", "while true; do timeout 0.2s yes >/dev/null; sleep 0.8s; done"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: inplace
+  namespace: demo
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: inplace
+  updatePolicy:
+    updateMode: InPlaceOrRecreate
+  resourcePolicy:
+    containerPolicies:
+      - containerName: "*"
+        maxAllowed:
+          cpu: 500m
+          memory: 256Mi
+---
+# Idle and heavily over-provisioned. VPA mode Off: recommendations only,
+# pods are never touched.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oversized
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oversized
+  template:
+    metadata:
+      labels:
+        app: oversized
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.31.6-alpine
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              memory: 512Mi
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: oversized
+  namespace: demo
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: oversized
+  updatePolicy:
+    updateMode: "Off"

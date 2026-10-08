@@ -1,0 +1,31 @@
+# Mutate: Pods without a `team` label get `team: unassigned`.
+apiVersion: policies.kyverno.io/v1
+kind: MutatingPolicy
+metadata:
+  name: default-team-label
+  annotations:
+    policies.kyverno.io/title: Default team label
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/description: Adds `team=unassigned` to Pods that have no `team` label.
+spec:
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        kyverno-demo: enabled
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+        operations: ["CREATE"]
+  matchConditions:
+    - name: missing-team-label
+      expression: "!has(object.metadata.labels) || !('team' in object.metadata.labels)"
+  mutations:
+    - patchType: ApplyConfiguration
+      applyConfiguration:
+        expression: |
+          Object{
+            metadata: Object.metadata{
+              labels: {"team": "unassigned"}
+            }
+          }

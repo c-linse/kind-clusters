@@ -1,0 +1,25 @@
+# Enforce: Deployments in demo namespaces must carry a `team` label.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-team-label
+  annotations:
+    policies.kyverno.io/title: Require team label
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: Deployments must have a `team` label so ownership and cost can be attributed.
+spec:
+  validationActions:
+    - Deny
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        kyverno-demo: enabled
+    resourceRules:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        resources: ["deployments"]
+        operations: ["CREATE", "UPDATE"]
+  validations:
+    - expression: has(object.metadata.labels) && 'team' in object.metadata.labels && object.metadata.labels['team'] != ''
+      messageExpression: "'Deployment ' + object.metadata.name + ' must have a non-empty `team` label.'"

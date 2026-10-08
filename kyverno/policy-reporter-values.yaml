@@ -1,0 +1,12 @@
+# Values for the policy-reporter/policy-reporter Helm chart.
+
+ui:
+  enabled: true
+  service:
+    # The chart has no nodePort value; up.sh pins it to 30082.
+    type: NodePort
+
+plugin:
+  kyverno:
+    # Shows policy details (description, severity, ...) in the UI.
+    enabled: true

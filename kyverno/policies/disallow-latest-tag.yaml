@@ -1,0 +1,31 @@
+# Audit: flag Pods whose images use `:latest` or no tag. Violations are
+# allowed through but show up in PolicyReports / Policy Reporter UI.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/title: Disallow latest tag
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: Images must be pinned to a tag other than `latest`.
+spec:
+  validationActions:
+    - Audit
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        kyverno-demo: enabled
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+        operations: ["CREATE", "UPDATE"]
+  variables:
+    - name: images
+      expression: object.spec.containers.map(c, c.image)
+  validations:
+    - expression: >-
+        variables.images.all(img,
+          img.contains(':') && !img.endsWith(':latest'))
+      messageExpression: "'Images must be pinned to a non-latest tag: ' + variables.images.join(', ')"

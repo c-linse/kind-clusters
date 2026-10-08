@@ -1,0 +1,46 @@
+# Generate: every demo namespace gets a default-deny-ingress NetworkPolicy
+# (kindnet enforces NetworkPolicies).
+apiVersion: policies.kyverno.io/v1
+kind: GeneratingPolicy
+metadata:
+  name: default-deny-ingress
+  annotations:
+    policies.kyverno.io/title: Default deny ingress
+    policies.kyverno.io/category: Multi-Tenancy
+    policies.kyverno.io/description: Generates a NetworkPolicy denying all ingress in new demo namespaces.
+spec:
+  evaluation:
+    synchronize:
+      enabled: true
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["namespaces"]
+        operations: ["CREATE", "UPDATE"]
+  matchConditions:
+    - name: demo-namespace
+      expression: >-
+        has(object.metadata.labels) && 'kyverno-demo' in object.metadata.labels &&
+        object.metadata.labels['kyverno-demo'] == 'enabled'
+  variables:
+    - name: nsName
+      expression: object.metadata.name
+    - name: netpol
+      expression: >-
+        [
+          {
+            "kind": dyn("NetworkPolicy"),
+            "apiVersion": dyn("networking.k8s.io/v1"),
+            "metadata": dyn({
+              "name": "default-deny-ingress",
+              "namespace": string(variables.nsName)
+            }),
+            "spec": dyn({
+              "podSelector": dyn({}),
+              "policyTypes": dyn(["Ingress"])
+            })
+          }
+        ]
+  generate:
+    - expression: generator.Apply(variables.nsName, variables.netpol)

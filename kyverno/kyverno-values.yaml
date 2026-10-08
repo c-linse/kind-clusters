@@ -1,0 +1,8 @@
+# Values for the kyverno/kyverno Helm chart.
+
+features:
+  # PolicyExceptions are off by default; enable them so
+  # manifests/exception.yaml can exempt a workload from a policy.
+  policyExceptions:
+    enabled: true
+    namespace: "*"
