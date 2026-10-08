@@ -1,0 +1,39 @@
+# Values for the opencost/opencost Helm chart.
+
+service:
+  type: NodePort
+  # Only applies to the UI port (9090). The UI proxies the cost-model API
+  # under /model/, so this one port is enough.
+  nodePort: 30095
+
+opencost:
+  exporter:
+    # Shown as the cluster in UI / API responses.
+    defaultClusterId: kind-opencost
+
+  prometheus:
+    internal:
+      enabled: true
+      serviceName: prometheus-server
+      namespaceName: prometheus-system
+      port: 80
+
+  # kind has no cloud billing API, so use a static on-prem price list
+  # (USD per vCPU-hour / GiB-hour / GiB-month).
+  customPricing:
+    enabled: true
+    provider: custom
+    costModel:
+      description: Local kind cluster pricing
+      CPU: 0.031611
+      spotCPU: 0.006655
+      RAM: 0.004237
+      spotRAM: 0.000892
+      GPU: 0.95
+      storage: 0.00005479452
+      zoneNetworkEgress: 0.01
+      regionNetworkEgress: 0.01
+      internetNetworkEgress: 0.12
+
+  ui:
+    enabled: true

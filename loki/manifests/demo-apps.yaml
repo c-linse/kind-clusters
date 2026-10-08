@@ -1,0 +1,106 @@
+# Demo workloads that write logs to stdout in different formats. Local dev only.
+#
+#   Workload      Format                         app label
+#   flog-json     JSON access logs (flog)        flog-json
+#   flog-apache   Apache combined logs (flog)    flog-apache
+#   orders        logfmt with level/trace_id     orders
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flog-json
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: flog-json
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: flog-json
+    spec:
+      containers:
+        - name: flog
+          image: mingrammer/flog:0.4.3
+          args: ["--format=json", "--loop", "--delay=500ms"]
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flog-apache
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: flog-apache
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: flog-apache
+    spec:
+      containers:
+        - name: flog
+          image: mingrammer/flog:0.4.3
+          args: ["--format=apache_combined", "--loop", "--delay=1s"]
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+---
+# orders: fake service logging logfmt lines with a mix of levels, a trace_id
+# and a duration, so there's something to filter / unwrap in LogQL.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders
+  namespace: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: orders
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: orders
+    spec:
+      containers:
+        - name: orders
+          image: busybox:1.37
+          command:
+            - /bin/sh
+            - -c
+            - |
+              i=0
+              while true; do
+                i=$((i+1))
+                r=$(awk -v s="$RANDOM$i" 'BEGIN{srand(s); print int(rand()*100)}')
+                ms=$(awk -v s="$i$RANDOM" 'BEGIN{srand(s); print int(rand()*900)+10}')
+                trace=$(head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')
+                if   [ "$r" -lt 70 ]; then echo "level=info msg=\"order placed\" order_id=$i trace_id=$trace duration_ms=$ms status=200"
+                elif [ "$r" -lt 85 ]; then echo "level=debug msg=\"cache miss\" order_id=$i trace_id=$trace duration_ms=$ms"
+                elif [ "$r" -lt 95 ]; then echo "level=warn msg=\"payment slow\" order_id=$i trace_id=$trace duration_ms=$((ms*3)) status=200"
+                else                       echo "level=error msg=\"payment failed\" order_id=$i trace_id=$trace duration_ms=$ms status=502 err=\"upstream timeout\""
+                fi
+                sleep 1
+              done
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              memory: 32Mi

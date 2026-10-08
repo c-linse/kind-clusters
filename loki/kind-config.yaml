@@ -1,0 +1,14 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: loki
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Grafana          -> http://localhost:3002
+      - containerPort: 30300
+        hostPort: 3002
+        protocol: TCP
+      # Loki (gateway)   -> http://localhost:3100
+      - containerPort: 31000
+        hostPort: 3100
+        protocol: TCP

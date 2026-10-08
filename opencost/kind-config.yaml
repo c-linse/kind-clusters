@@ -1,0 +1,14 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: opencost
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # OpenCost UI  -> http://localhost:9095
+      - containerPort: 30095
+        hostPort: 9095
+        protocol: TCP
+      # Prometheus   -> http://localhost:9096
+      - containerPort: 30096
+        hostPort: 9096
+        protocol: TCP

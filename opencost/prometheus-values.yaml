@@ -1,0 +1,32 @@
+# Values for the prometheus-community/prometheus Helm chart.
+# Minimal Prometheus as OpenCost's data source, per
+# https://opencost.io/docs/configuration/on-prem
+
+server:
+  retention: 2d
+  persistentVolume:
+    enabled: false
+  service:
+    type: NodePort
+    nodePort: 30096
+
+alertmanager:
+  enabled: false
+
+prometheus-pushgateway:
+  enabled: false
+
+# Scrape OpenCost itself (node_total_hourly_cost, container_cpu_allocation, ...).
+# From https://raw.githubusercontent.com/opencost/opencost/develop/kubernetes/prometheus/extraScrapeConfigs.yaml
+extraScrapeConfigs: |
+  - job_name: opencost
+    honor_labels: true
+    scrape_interval: 1m
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    scheme: http
+    dns_sd_configs:
+    - names:
+      - opencost.opencost
+      type: 'A'
+      port: 9003

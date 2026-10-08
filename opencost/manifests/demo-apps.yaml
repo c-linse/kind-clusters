@@ -1,0 +1,132 @@
+# Demo workloads so OpenCost has something to allocate. Local dev only.
+#
+# Two "teams" in separate namespaces with different resource requests, plus
+# team/app labels so you can aggregate by namespace, label:team or
+# label:app. OpenCost bills max(request, usage), so idle pods still cost.
+#
+#   Namespace  Deployment  Replicas  CPU req  Mem req  Notes
+#   team-a     web         3         100m     128Mi    idle (pause)
+#   team-a     worker      1         100m     256Mi    burns ~200m CPU (limit)
+#   team-b     api         2         50m      64Mi     idle (pause)
+#   team-b     batch       1         500m     512Mi    idle, over-provisioned
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-a
+  labels:
+    team: a
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-b
+  labels:
+    team: b
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: team-a
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+        team: a
+    spec:
+      containers:
+        - name: web
+          image: registry.k8s.io/pause:3.10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 128Mi
+---
+# Actually uses CPU, so usage > request shows up in the UI.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: team-a
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+        team: a
+    spec:
+      containers:
+        - name: worker
+          image: busybox:1.37
+          command: ["sh", "-c", "while true; do :; done"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: team-b
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+        team: b
+    spec:
+      containers:
+        - name: api
+          image: registry.k8s.io/pause:3.10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 64Mi
+---
+# Requests a lot, uses nothing: shows up as poor efficiency.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: batch
+  namespace: team-b
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: batch
+  template:
+    metadata:
+      labels:
+        app: batch
+        team: b
+    spec:
+      containers:
+        - name: batch
+          image: registry.k8s.io/pause:3.10
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              memory: 512Mi
