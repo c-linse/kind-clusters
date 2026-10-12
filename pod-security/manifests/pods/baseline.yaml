@@ -1,0 +1,11 @@
+# Passes "baseline" (nothing dangerous), fails "restricted": no
+# securityContext, so it may run as root, keeps all default capabilities,
+# allows privilege escalation and has no seccomp profile.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: baseline
+spec:
+  containers:
+    - name: web
+      image: nginx:1.29.2-alpine

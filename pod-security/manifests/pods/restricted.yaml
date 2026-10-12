@@ -1,0 +1,20 @@
+# Passes "restricted". nginx-unprivileged listens on 8080 as uid 101,
+# so it works without root or capabilities.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: restricted
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: web
+      image: nginxinc/nginx-unprivileged:1.29.2-alpine
+      ports:
+        - containerPort: 8080
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]

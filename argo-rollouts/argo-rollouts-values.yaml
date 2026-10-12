@@ -1,0 +1,11 @@
+# Values for the argo/argo-rollouts Helm chart.
+# No service mesh, ingress or metrics provider: canaries shift traffic by
+# scaling ReplicaSets (setWeight is approximated by the replica ratio).
+controller:
+  replicas: 1
+
+dashboard:
+  enabled: true
+  service:
+    type: NodePort
+    nodePort: 31000

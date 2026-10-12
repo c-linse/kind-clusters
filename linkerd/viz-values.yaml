@@ -1,0 +1,6 @@
+# Values for the linkerd-edge/linkerd-viz Helm chart.
+# The chart has no service type value; up.sh turns the `web` Service into
+# a NodePort on 30071. The default enforcedHostRegexp already allows
+# localhost, so http://localhost:8084 passes the dashboard's host check.
+dashboard:
+  replicas: 1

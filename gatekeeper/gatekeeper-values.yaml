@@ -1,0 +1,9 @@
+# Values for the gatekeeper/gatekeeper Helm chart.
+replicas: 1
+
+# Audit every 20s instead of 60s, so dryrun/warn violations show up in
+# the constraint status quickly.
+auditInterval: 20
+
+# Report up to 50 violations per constraint (default 20).
+constraintViolationsLimit: 50

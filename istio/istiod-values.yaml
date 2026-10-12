@@ -1,0 +1,8 @@
+# Values for the istio/istiod Helm chart.
+# Sidecar mode (the default profile). Namespaces opt in with the
+# istio-injection=enabled label.
+pilot:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi

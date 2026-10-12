@@ -1,0 +1,148 @@
+# CNPE practice scenario: two apps doing Blue/Green with Flagger's kubernetes
+# provider (no service mesh, no metrics). Each app answers HTTP with its
+# APP_VERSION. Flagger creates appN-primary plus the appN / appN-primary /
+# appN-canary Services; the appN-nodeport Services expose the primary pods on
+# http://localhost:30041 and :30042.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: malawi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app1
+  namespace: malawi
+  labels:
+    app: app1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app1
+  template:
+    metadata:
+      labels:
+        app: app1
+    spec:
+      containers:
+        - name: app
+          image: hashicorp/http-echo:1.0.0
+          args:
+            - -listen=:8080
+            - -text=app1 $(APP_VERSION)
+          env:
+            - name: APP_VERSION
+              value: "1.0.0"
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app2
+  namespace: malawi
+  labels:
+    app: app2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app2
+  template:
+    metadata:
+      labels:
+        app: app2
+    spec:
+      containers:
+        - name: app
+          image: hashicorp/http-echo:1.0.0
+          args:
+            - -listen=:8080
+            - -text=app2 $(APP_VERSION)
+          env:
+            - name: APP_VERSION
+              value: "1.0.0"
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+---
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: app1
+  namespace: malawi
+spec:
+  provider: kubernetes
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app1
+  progressDeadlineSeconds: 60
+  service:
+    port: 80
+    targetPort: 8080
+  analysis:
+    interval: 5s
+    iterations: 2
+    threshold: 2
+    metrics: []
+---
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: app2
+  namespace: malawi
+spec:
+  provider: kubernetes
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app2
+  progressDeadlineSeconds: 60
+  service:
+    port: 80
+    targetPort: 8080
+  analysis:
+    interval: 5s
+    iterations: 2
+    threshold: 2
+    metrics: []
+---
+# Flagger relabels primary pods to app: appN-primary
+apiVersion: v1
+kind: Service
+metadata:
+  name: app1-nodeport
+  namespace: malawi
+spec:
+  type: NodePort
+  selector:
+    app: app1-primary
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30041
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app2-nodeport
+  namespace: malawi
+spec:
+  type: NodePort
+  selector:
+    app: app2-primary
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30042

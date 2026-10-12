@@ -1,0 +1,16 @@
+# Values for the istio/gateway Helm chart.
+# kind has no LoadBalancer, so the ingress gateway is a NodePort Service.
+# The release name istio-ingress gives the pods the label istio=ingress,
+# which manifests/demo.yaml selects in its Gateway.
+service:
+  type: NodePort
+  ports:
+    - name: status-port
+      port: 15021
+      protocol: TCP
+      targetPort: 15021
+    - name: http2
+      port: 80
+      protocol: TCP
+      targetPort: 80
+      nodePort: 30061

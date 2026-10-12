@@ -1,0 +1,9 @@
+# Values for the flagger/flagger Helm chart.
+# No service mesh or ingress: the kubernetes provider does Blue/Green by
+# switching ClusterIP Services, per
+# https://docs.flagger.app/tutorials/kubernetes-blue-green
+meshProvider: kubernetes
+
+# No metrics provider. Canaries use `metrics: []` and webhooks only.
+prometheus:
+  install: false

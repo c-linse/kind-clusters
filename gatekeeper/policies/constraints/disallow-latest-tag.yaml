@@ -1,0 +1,16 @@
+# warn: admitted, but kubectl prints a warning (and audit reports it).
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sDisallowedTags
+metadata:
+  name: disallow-latest-tag
+spec:
+  enforcementAction: warn
+  match:
+    kinds:
+      - apiGroups: ["apps"]
+        kinds: ["Deployment"]
+    namespaceSelector:
+      matchLabels:
+        gatekeeper-demo: enabled
+  parameters:
+    tags: ["latest"]

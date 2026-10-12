@@ -1,0 +1,4 @@
+# Values for the linkerd-edge/linkerd-control-plane Helm chart.
+# The identity certificates come from certs/ via --set-file in up.sh.
+# Namespaces opt in with the linkerd.io/inject=enabled annotation.
+controllerReplicas: 1

@@ -1,0 +1,25 @@
+apiVersion: policies.kyverno.io/v1
+kind: MutatingPolicy
+metadata:
+  name: "mypol"
+spec:
+  matchConstraints:
+    resourceRules:
+      - apiGroups:   [""]
+        apiVersions: ["v1"]
+        operations:  ["CREATE", "UPDATE"]
+        resources:   ["pods"]
+  mutations:
+    - patchType: "JSONPatch"
+      jsonPatch:
+        expression: >
+          [
+             	    JSONPatch{
+             	      op: "add",
+             	      path: "/metadata/labels/" +
+             jsonpatch.escapeKey("example.com/environment"),
+             	      value: "test"
+             	    },
+             	  ]
+          
+          

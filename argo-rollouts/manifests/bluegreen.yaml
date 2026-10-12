@@ -1,0 +1,79 @@
+# Blue-green without traffic routing. Two Services, both selecting app: bg;
+# the controller adds a rollouts-pod-template-hash selector to each:
+#   bg-active  (http://localhost:30052) -> stable (blue) pods, production traffic
+#   bg-preview (http://localhost:30053) -> new (green) pods, for testing
+# On a new revision the green ReplicaSet scales up next to blue and only
+# bg-preview points to it. `kubectl argo rollouts promote bg` flips the
+# bg-active selector to green (100% of traffic at once); blue is scaled down
+# after scaleDownDelaySeconds, so an abort in that window is instant.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bluegreen
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: bg
+  namespace: bluegreen
+spec:
+  replicas: 2
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: bg
+  template:
+    metadata:
+      labels:
+        app: bg
+    spec:
+      containers:
+        - name: app
+          image: hashicorp/http-echo:1.0.0
+          args:
+            - -listen=:8080
+            - -text=bg $(APP_VERSION)
+          env:
+            - name: APP_VERSION
+              value: "blue"
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+  strategy:
+    blueGreen:
+      activeService: bg-active
+      previewService: bg-preview
+      autoPromotionEnabled: false   # wait for: kubectl argo rollouts promote bg
+      scaleDownDelaySeconds: 30     # keep blue running 30s after the switch
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bg-active
+  namespace: bluegreen
+spec:
+  type: NodePort
+  selector:
+    app: bg
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30052
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bg-preview
+  namespace: bluegreen
+spec:
+  type: NodePort
+  selector:
+    app: bg
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30053

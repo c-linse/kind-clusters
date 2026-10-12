@@ -1,0 +1,18 @@
+# dryrun: never blocks or warns; violations only show up in the audit,
+# i.e. in this constraint's .status.violations.
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredResources
+metadata:
+  name: require-resources
+spec:
+  enforcementAction: dryrun
+  match:
+    kinds:
+      - apiGroups: ["apps"]
+        kinds: ["Deployment"]
+    namespaceSelector:
+      matchLabels:
+        gatekeeper-demo: enabled
+  parameters:
+    requests: ["cpu", "memory"]
+    limits: ["memory"]

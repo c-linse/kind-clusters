@@ -1,0 +1,10 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: istio
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Istio ingress gateway, http2 port -> http://localhost:30061
+      - containerPort: 30061
+        hostPort: 30061
+        protocol: TCP

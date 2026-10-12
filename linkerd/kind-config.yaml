@@ -1,0 +1,10 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: linkerd
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Linkerd Viz dashboard -> http://localhost:8084
+      - containerPort: 30071
+        hostPort: 8084
+        protocol: TCP

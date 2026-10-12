@@ -1,0 +1,20 @@
+# PSA checks workload resources too, but only warns about them; enforce
+# applies to the pods. In psa-restricted the Deployment is created, yet
+# the ReplicaSet can't create pods (see its FailedCreate events).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.29.2-alpine

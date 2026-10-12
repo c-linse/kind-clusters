@@ -1,0 +1,19 @@
+# AssignMetadata only adds a label if it is missing; it never overwrites.
+# Pods created from a template without a team label get team=unassigned.
+apiVersion: mutations.gatekeeper.sh/v1
+kind: AssignMetadata
+metadata:
+  name: default-team-label
+spec:
+  match:
+    scope: Namespaced
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    namespaceSelector:
+      matchLabels:
+        gatekeeper-demo: enabled
+  location: "metadata.labels.team"
+  parameters:
+    assign:
+      value: unassigned

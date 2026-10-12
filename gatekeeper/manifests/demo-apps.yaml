@@ -1,0 +1,62 @@
+# The `gatekeeper-demo: enabled` label opts a namespace into the demo
+# constraints and the mutation.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+  labels:
+    gatekeeper-demo: enabled
+---
+# Compliant: team label, pinned image, requests + limits.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: good
+  namespace: demo
+  labels:
+    app: good
+    team: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: good
+  template:
+    metadata:
+      labels:
+        app: good
+        team: platform
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.31.6-alpine
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+---
+# Admitted but non-compliant: `:latest` image (warn), no resources (dryrun),
+# and no team label on the pod template (AssignMetadata adds team=unassigned).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sloppy
+  namespace: demo
+  labels:
+    app: sloppy
+    team: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sloppy
+  template:
+    metadata:
+      labels:
+        app: sloppy
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest

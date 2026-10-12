@@ -1,0 +1,22 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: argo-rollouts
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Argo Rollouts dashboard   -> http://localhost:3110
+      - containerPort: 31000
+        hostPort: 3110
+        protocol: TCP
+      # demo app (manifests/demo.yaml) -> http://localhost:30051
+      - containerPort: 30051
+        hostPort: 30051
+        protocol: TCP
+      # blue-green active  (manifests/bluegreen.yaml) -> http://localhost:30052
+      - containerPort: 30052
+        hostPort: 30052
+        protocol: TCP
+      # blue-green preview (manifests/bluegreen.yaml) -> http://localhost:30053
+      - containerPort: 30053
+        hostPort: 30053
+        protocol: TCP

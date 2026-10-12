@@ -1,0 +1,107 @@
+# Basic canary without traffic routing. The Service `app` selects all pods of
+# the Rollout, so setWeight: 25 with 4 replicas means 1 canary pod + 3 stable
+# pods. `app-canary` only selects canary pods (the controller adds the
+# rollouts-pod-template-hash selector) and is what the http-check Job calls.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: app
+  namespace: demo
+spec:
+  replicas: 4
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+    spec:
+      containers:
+        - name: app
+          image: hashicorp/http-echo:1.0.0
+          args:
+            - -listen=:8080
+            - -text=app $(APP_VERSION)
+          env:
+            - name: APP_VERSION
+              value: "1.0.0"
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+  strategy:
+    canary:
+      canaryService: app-canary
+      steps:
+        - setWeight: 25
+        - analysis:            # runs the Job; failure aborts the rollout
+            templates:
+              - templateName: http-check
+            args:
+              - name: url
+                value: http://app-canary.demo
+        - pause: {}            # wait for: kubectl argo rollouts promote app
+        - setWeight: 50
+        - pause: {duration: 10s}
+        - setWeight: 75
+        - pause: {duration: 10s}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+  namespace: demo
+spec:
+  type: NodePort
+  selector:
+    app: app
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30051
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-canary
+  namespace: demo
+spec:
+  selector:
+    app: app
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+# Job metric: the measurement succeeds if the Job completes, fails if the Job
+# fails. Here: curl the canary Service and expect a 2xx.
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: http-check
+  namespace: demo
+spec:
+  args:
+    - name: url
+  metrics:
+    - name: http-check
+      provider:
+        job:
+          spec:
+            backoffLimit: 0
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: curl
+                    image: curlimages/curl:8.11.1
+                    args: ["-fsS", "--max-time", "5", "{{args.url}}"]

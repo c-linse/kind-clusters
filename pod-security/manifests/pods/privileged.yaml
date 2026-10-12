@@ -1,0 +1,22 @@
+# Only allowed under "privileged": privileged container, host namespaces,
+# hostPath volume.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: privileged
+spec:
+  hostNetwork: true
+  hostPID: true
+  containers:
+    - name: shell
+      image: busybox:1.37
+      command: ["sleep", "infinity"]
+      securityContext:
+        privileged: true
+      volumeMounts:
+        - name: host
+          mountPath: /host
+  volumes:
+    - name: host
+      hostPath:
+        path: /

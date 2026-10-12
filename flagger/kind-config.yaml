@@ -1,0 +1,13 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: flagger
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # malawi scenario (manifests/malawi.yaml) -> http://localhost:30041 / :30042
+      - containerPort: 30041
+        hostPort: 30041
+        protocol: TCP
+      - containerPort: 30042
+        hostPort: 30042
+        protocol: TCP

@@ -1,0 +1,40 @@
+apiVersion: policy.linkerd.io/v1beta3
+kind: Server
+metadata:
+  name: demo-app
+  namespace: demo
+spec:
+  podSelector:
+    matchLabels:
+      app: app
+  port: 8080
+  proxyProtocol: HTTP/1
+  accessPolicy: deny
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: allowed-clients
+  namespace: demo
+spec:
+  identities:
+    - "default.demo.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-demo-client
+  namespace: demo
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: demo-app
+  requiredAuthenticationRefs:
+    - group: policy.linkerd.io
+      kind: MeshTLSAuthentication
+      name: allowed-clients
+
+#    - kind: ServiceAccount
+#      name: default
+#      namespace: demo

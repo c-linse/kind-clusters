@@ -1,0 +1,112 @@
+# Not applied by up.sh. A `frontend` (curl) that calls a `backend` (nginx)
+# every half second in the meshed `demo` namespace, each with its own
+# ServiceAccount so policies can tell them apart, and a Server per Deployment.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: frontend
+  namespace: demo
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backend
+  namespace: demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: demo
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      serviceAccountName: backend
+      containers:
+        - name: nginx
+          image: nginx:1.29.1-alpine
+          ports:
+            - name: http
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: demo
+spec:
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: demo
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      serviceAccountName: frontend
+      containers:
+        - name: curl
+          image: curlimages/curl:8.16.0
+          command: ["/bin/sh", "-c"]
+          args:
+            - while true; do curl -s -o /dev/null -w "%{http_code}\n" --max-time 2 http://backend; sleep 0.5; done
+          ports:
+            - name: http
+              containerPort: 8080
+---
+# curl does not listen on anything, so this Server only takes effect once
+# something in the frontend pod serves on 8080.
+apiVersion: policy.linkerd.io/v1beta3
+kind: Server
+metadata:
+  name: frontend
+  namespace: demo
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  port: http
+  proxyProtocol: HTTP/1
+  accessPolicy: all-authenticated
+---
+apiVersion: policy.linkerd.io/v1beta3
+kind: Server
+metadata:
+  name: backend
+  namespace: demo
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  port: http
+  proxyProtocol: HTTP/1
+  accessPolicy: all-authenticated

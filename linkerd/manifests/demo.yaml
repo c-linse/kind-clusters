@@ -1,0 +1,144 @@
+# Two versions of one app in the meshed `demo` namespace, plus a client
+# that curls http://app every half second so Viz has traffic to show.
+# The `app` Service selects only v1 until manifests/split.yaml adds an
+# HTTPRoute that sends part of its traffic to app-v2.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+  annotations:
+    linkerd.io/inject: enabled
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-v1
+  namespace: demo
+  labels:
+    app: app
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: app
+        version: v1
+    spec:
+      containers:
+        - name: app
+          image: hashicorp/http-echo:1.0.0
+          args:
+            - -listen=:8080
+            - -text=app v1
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-v2
+  namespace: demo
+  labels:
+    app: app
+    version: v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: app
+        version: v2
+    spec:
+      containers:
+        - name: app
+          image: hashicorp/http-echo:1.0.0
+          args:
+            - -listen=:8080
+            - -text=app v2
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+  namespace: demo
+spec:
+  selector:
+    app: app
+    version: v1
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-v1
+  namespace: demo
+spec:
+  selector:
+    app: app
+    version: v1
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-v2
+  namespace: demo
+spec:
+  selector:
+    app: app
+    version: v2
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client
+  namespace: demo
+  labels:
+    app: client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      containers:
+        - name: curl
+          image: curlimages/curl:8.16.0
+          command: ["/bin/sh", "-c"]
+          args:
+            - while true; do curl -s --max-time 2 http://app/health; sleep 0.5; done

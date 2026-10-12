@@ -1,0 +1,43 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredresources
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredResources
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            requests:
+              type: array
+              items:
+                type: string
+            limits:
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      code:
+        - engine: Rego
+          source:
+            version: "v1"
+            rego: |
+              package k8srequiredresources
+
+              violation contains {"msg": msg} if {
+                some c in input.review.object.spec.template.spec.containers
+                some r in input.parameters.requests
+                not c.resources.requests[r]
+                msg := sprintf("container <%v> has no resources.requests.%v", [c.name, r])
+              }
+
+              violation contains {"msg": msg} if {
+                some c in input.review.object.spec.template.spec.containers
+                some r in input.parameters.limits
+                not c.resources.limits[r]
+                msg := sprintf("container <%v> has no resources.limits.%v", [c.name, r])
+              }
